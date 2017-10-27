@@ -1,0 +1,222 @@
+---
+title: "Forecasting Event Data"
+author: "Zhanna Terechshenko"
+date: "10/27/2017"
+output: html_document
+---
+### Introduction #####
+
+In this tutorial, I compare forecasting utility of PHOENIX and ICEWS event datasets using the output from random forest model. 
+
+
+Loading libraries:
+```{r results='hide', message=FALSE, warning=FALSE}
+rm(list=ls())
+library(here)
+library(caret)
+library(stats)
+library(plyr)
+library(data.table)
+library(tidyverse)
+library(randomForest)
+```
+
+Making sure the results of this script are reproducible
+```{r}
+set.seed(0927)
+```
+
+In order to compare forecasting utility I am using The Ground Truth Data Set (GTDS), which which provides information on 5 events of interests (EOI): International Crisis, Ethnic/Religious Conflict, Domestic Crisis, Rebellion, and Insurgency. It covers 168 states from January 2001 through 2014. The unit is country-month.
+
+```{r}
+eoi = read.csv("gtds_2001.to.may.2014.csv")
+head(eoi)
+```
+Here, I'll focus on  on International Crisis. 
+For the purpose of forecasting I create an onset variable:
+
+```{r}
+eoi_int = eoi %>%
+  select(ccode, year, month, ic)
+
+eoi_d = eoi_int[eoi_int$ic==1,]
+eoi_d$onset <- with(eoi_d, ave(year, month, ccode, FUN = function(x)
+  as.integer(c(TRUE, tail(x, -1L) != head(x, -1L) + 1L))))
+eoi_d = eoi_d[eoi_d$onset==1,]
+
+eoi_final = merge(eoi_int, eoi_d, all.x=T)
+eoi_final$onset[is.na(eoi_final$onset)==T] <-0
+eoi_final$ic = NULL
+```
+
+I've already preprocessed both PHOENIX and ICEWS. I aggregated both datasets to the country - month level and selected conflicts with government and military actors for international conflict. 
+In this aggregated form, both datasets provide information on counts of events for quad classes: verbal cooperation, material cooperation, verbal conflict, material conflict.
+
+
+```{r}
+phoenix_int = read.csv("pho_international.csv")
+head(phoenix_int)
+```
+
+I lagged quad categories by 3 and 6 months
+
+```{r}
+pho_int_lag = phoenix_int %>% 
+  group_by(ccode) %>% 
+  arrange(ccode, year) %>% 
+  do(data.frame(., setNames(shift(.$vcp, c(3,6)), paste("vcp_l", c(3,6), sep=".")))) %>%
+  do(data.frame(., setNames(shift(.$mcp, c(3,6)), paste("mcp_l", c(3,6), sep=".")))) %>%
+  do(data.frame(., setNames(shift(.$vcf, c(3,6)), paste("vcf_l", c(3,6), sep=".")))) %>%
+  do(data.frame(., setNames(shift(.$mcf, c(3,6)), paste("mcf_l", c(3,6), sep=".")))) %>%
+  select(ccode, year, month, vcp_l.3, mcp_l.3, vcf_l.3, mcf_l.3,
+         vcp_l.6, mcp_l.6, vcf_l.6, mcf_l.6)
+
+pho_int_lag = na.omit(pho_int_lag)
+```
+
+I merge GTDS and PHOENIX datasets together
+```{r}
+df = merge(pho_int_lag, eoi_final, by=c("ccode", "year", "month"))
+df$onset = as.factor(df$onset)
+```
+
+I split the data on training and test samples. In this example, I train the model on 2001 - 2005 data and test it on 2006
+
+```{r}
+train_data = df[which(df$year<=2005),]
+train_data_l3 = subset(train_data, select=c("ccode", "year", "month",
+                                            "vcp_l.3", "mcp_l.3", "vcf_l.3", "mcf_l.3", 'onset'))
+train_data_l6 = subset(train_data, select=c("ccode", "year", "month",
+                                            "vcp_l.6", "mcp_l.6", "vcf_l.6", "mcf_l.6", 'onset'))
+
+
+test_data = df[which(df$year==2006),]
+test_data_l3 = subset(test_data, select=c("ccode", "year", "month",
+                                            "vcp_l.3", "mcp_l.3", "vcf_l.3", "mcf_l.3", 'onset'))
+test_data_l6 = subset(test_data, select=c("ccode", "year", "month",
+                                            "vcp_l.6", "mcp_l.6", "vcf_l.6", "mcf_l.6", 'onset'))
+
+```
+
+I train the model using random forest and 5-fold cross validation. 
+
+```{r}
+rf_model<-train(onset~.,data=train_data_l3,method="rf",
+                trControl=trainControl(method="cv",number=5, savePredictions = T),
+                prox=TRUE,allowParallel=TRUE)
+print(rf_model)
+```
+
+Looking at the results
+
+```{r}
+print(rf_model$finalModel)
+```
+
+
+```{r, figure=TRUE}
+testclass <- predict(rf_model, newdata = test_data_l3)
+cfMatrix <- confusionMatrix(data = testclass, test_data_l3$onset)
+print(cfMatrix)
+plot(rf_model)
+```
+
+```{r, figure=TRUE, eval=FALSE}
+test.probs <- predict(rf_model,test_data_l3,type="prob")
+
+library(pROC)	
+
+pROC::roc(test_data_l3$onset, testclass)
+
+rf.ROC <- roc(predictor=testclass,
+               response=test_data_l3$onset,
+               levels=rev(levels(test_data_l3$onset)))
+rf.ROC$auc
+
+plot(rf.ROC,main="RF ROC Phoenix")
+```
+
+
+I am doing the same for ICEWS data:
+```{r}
+icw_int = read.csv("icw_international.csv")
+head(icw_int)
+```
+
+```{r}
+# lag variables by 3 and 6 months
+icw_int_lag = icw_int %>% 
+  group_by(ccode) %>% 
+  arrange(ccode, year) %>% 
+  do(data.frame(., setNames(shift(.$vcp, c(3,6)), paste("vcp_l", c(3,6), sep=".")))) %>%
+  do(data.frame(., setNames(shift(.$mcp, c(3,6)), paste("mcp_l", c(3,6), sep=".")))) %>%
+  do(data.frame(., setNames(shift(.$vcf, c(3,6)), paste("vcf_l", c(3,6), sep=".")))) %>%
+  do(data.frame(., setNames(shift(.$mcf, c(3,6)), paste("mcf_l", c(3,6), sep=".")))) %>%
+  select(ccode, year, month, vcp_l.3, mcp_l.3, vcf_l.3, mcf_l.3,
+         vcp_l.6, mcp_l.6, vcf_l.6, mcf_l.6)
+
+icw_int_lag = na.omit(icw_int_lag)
+
+# merge 2 datasets
+df2 = merge(icw_int_lag, eoi_final, by=c("ccode", "year", "month"))
+df2$onset = as.factor(df2$onset)
+
+# split the data
+train_data = df2[which(df2$year<=2005),]
+train_data_l3 = subset(train_data, select=c("ccode", "year", "month",
+                                            "vcp_l.3", "mcp_l.3", "vcf_l.3", "mcf_l.3", 'onset'))
+train_data_l6 = subset(train_data, select=c("ccode", "year", "month",
+                                            "vcp_l.6", "mcp_l.6", "vcf_l.6", "mcf_l.6", 'onset'))
+
+
+test_data = df2[which(df2$year==2006),]
+test_data_l3 = subset(test_data, select=c("ccode", "year", "month",
+                                          "vcp_l.3", "mcp_l.3", "vcf_l.3", "mcf_l.3", 'onset'))
+test_data_l6 = subset(test_data, select=c("ccode", "year", "month",
+                                          "vcp_l.6", "mcp_l.6", "vcf_l.6", "mcf_l.6", 'onset'))
+
+
+
+
+# train the model
+rf_model2<-train(onset~.,data=train_data_l3,method="rf",
+                trControl=trainControl(method="cv",number=5, savePredictions = T),
+                prox=TRUE,allowParallel=TRUE)
+print(rf_model2)
+```
+
+```{r}
+print(rf_model2$finalModel)
+```
+
+
+```{r, figure=TRUE}
+testclass <- predict(rf_model2, newdata = test_data_l3)
+cfMatrix <- confusionMatrix(data = testclass, test_data_l3$onset)
+print(cfMatrix)
+
+```
+
+
+```{r, figure=TRUE}
+plot(rf_model2)
+```
+
+```{r, figure=TRUE, eval=FALSE}
+
+test.probs <- predict(rf_model2,test_data_l3,type="prob")
+
+library(pROC)	
+
+pROC::roc(test_data_l3$onset, testclass)
+
+rf.ROC <- roc(predictor=testclass,
+              response=test_data_l3$onset,
+              levels=rev(levels(test_data_l3$onset)))
+rf.ROC$auc
+# Area under the curve: 1
+
+plot(rf.ROC,main="RF ROC ICEWS")
+
+```
+
