@@ -1,10 +1,12 @@
 rm(list=ls())
+#loading libraries
 library(here)
 library(reshape2)
 library(dplyr)
 library(corrplot)
 library(countrycode)
 
+# PHOENIX dataset uses three sources:
 source1<-read.csv("/Users/zhanna.terechshenko/MA/DATA/Phoenix/ClineCenterHistoricalPhoenixEventData/PhoenixFBIS_1995-2004.csv")
 source2<-read.csv("/Users/zhanna.terechshenko/MA/DATA/Phoenix/ClineCenterHistoricalPhoenixEventData/PhoenixNYT_1945-2005.csv")
 source3<-read.csv("/Users/zhanna.terechshenko/MA/DATA/Phoenix/ClineCenterHistoricalPhoenixEventData/PhoenixSWB_1979-2015.csv")
@@ -13,6 +15,7 @@ sources <-rbind(source1, source2, source3)
 
 
 #international
+# only GOV and MIL actors included
 phoenix.data1 = sources %>%
   filter(source_root != target_root) %>%
   filter(source_agent=="GOV" | source_agent=="MIL") %>%
@@ -21,7 +24,7 @@ phoenix.data1 = sources %>%
   filter(target_root!="") %>%
   filter(is.na(year)==F) %>%
   filter(year >=2001 & year <=2014) %>%
-  filter(source_root!="PSE" & source_root!="HKG" &
+  filter(source_root!="PSE" & source_root!="HKG" & # I exclude non-recognized states, such as Hong Kong, Palestine, 
            source_root!="NGO" & source_root!="IGO" & source_root!="MNC" & 
            source_root!="BMU" & source_root!="ABW" & source_root!="AIA" &
            source_root!="COK" & source_root!="CYM") %>%
@@ -29,7 +32,7 @@ phoenix.data1 = sources %>%
            target_root!="NGO" & target_root!="IGO" & target_root!="MNC"  &
            target_root!="BMU" & target_root!="ABW" & target_root!="AIA" &
            target_root!="COK" & target_root!="CYM") %>%
-  mutate(cow1 = countrycode(source_root, 'iso3c', 'cown')) %>%
+  mutate(cow1 = countrycode(source_root, 'iso3c', 'cown')) %>% # I convert the names of the countries to COW code
   mutate(cow1 = ifelse(source_root=='SRB', '345', cow1)) %>%
   mutate(cow1 = ifelse(source_root=='TMP', '860', cow1)) %>%
   mutate(cow1 = ifelse(source_root=='SUN', '365', cow1)) %>%
@@ -51,6 +54,7 @@ phoenix.data2 = phoenix.data1 %>%
 
 pho = rbind(phoenix.data1, phoenix.data2)
 
+#Aggregate by country-month
 pho.data = pho %>%
   select(ccode, year, month, vcp, mcp, vcf, mcf) %>%
   melt(id.vars = c('ccode','year', 'month')) %>%
@@ -61,7 +65,7 @@ names(pho.data)<-c('ccode', 'year', 'month','vcp', 'mcp', 'vcf', 'mcf')
 write.csv(pho.data, "pho_international.csv")
 
 
-#domestic
+# Select domestic crises based on gov/mil vs rebels
 phoenix.data3 = sources %>%
   filter(source_root == target_root) %>%
   filter(source_agent=="GOV" | source_agent=="MIL" | source_agent=="REB") %>%
@@ -70,7 +74,7 @@ phoenix.data3 = sources %>%
   filter(target_root!="") %>%
   filter(is.na(year)==F) %>%
   filter(year >=2001 & year <=2014) %>%
-  filter(source_root!="PSE" & source_root!="HKG" &
+  filter(source_root!="PSE" & source_root!="HKG" &  # exclude non-recognized states
            source_root!="NGO" & source_root!="IGO" & source_root!="MNC" & 
            source_root!="BMU" & source_root!="ABW" & source_root!="AIA" &
            source_root!="COK" & source_root!="CYM") %>%
@@ -78,7 +82,7 @@ phoenix.data3 = sources %>%
            target_root!="NGO" & target_root!="IGO" & target_root!="MNC"  &
            target_root!="BMU" & target_root!="ABW" & target_root!="AIA" &
            target_root!="COK" & target_root!="CYM") %>%
-  mutate(cow1 = countrycode(source_root, 'iso3c', 'cown')) %>%
+  mutate(cow1 = countrycode(source_root, 'iso3c', 'cown')) %>% # convert to cow code
   mutate(cow1 = ifelse(source_root=='SRB', '345', cow1)) %>%
   mutate(cow1 = ifelse(source_root=='TMP', '860', cow1)) %>%
   mutate(cow1 = ifelse(source_root=='SUN', '365', cow1)) %>%
@@ -94,7 +98,7 @@ phoenix.data3 = sources %>%
   mutate(vcf = ifelse(quad_class==3, 1, 0)) %>% # verbal conflict
   mutate(mcf = ifelse(quad_class==4, 1, 0)) %>% # material conflict
   select(ccode, year, month, vcp, mcp, vcf, mcf)
-
+# Aggregate by country-month
 pho.data3 = phoenix.data3 %>%
   melt(id.vars = c('ccode','year', 'month')) %>%
   dcast(ccode+year+month~variable, fun.aggregate=sum) 
