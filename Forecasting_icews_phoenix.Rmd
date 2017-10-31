@@ -86,17 +86,17 @@ df$onset = as.factor(df$onset)
 ## Training the model
 
 
-I split the data on training and test samples. In this example, I train the model on 2001 - 2005 data and test it on 2006 (I use a shorter timeframe to save a training time for this tutorial):
+I split the data on training and test samples. In this example, I train the model on 2001 - 2011 data and test it on 2012-2014:
 
 ```{r}
-train_data = df[which(df$year<=2005),]
+train_data = df[which(df$year<=2011),]
 train_data_l3 = subset(train_data, select=c("ccode", "year", "month",
                                             "vcp_l.3", "mcp_l.3", "vcf_l.3", "mcf_l.3", 'onset'))
 train_data_l6 = subset(train_data, select=c("ccode", "year", "month",
                                             "vcp_l.6", "mcp_l.6", "vcf_l.6", "mcf_l.6", 'onset'))
 
 
-test_data = df[which(df$year==2006),]
+test_data = df[which(df$year>=2012),]
 test_data_l3 = subset(test_data, select=c("ccode", "year", "month",
                                             "vcp_l.3", "mcp_l.3", "vcf_l.3", "mcf_l.3", 'onset'))
 test_data_l6 = subset(test_data, select=c("ccode", "year", "month",
@@ -144,6 +144,8 @@ auc <- unlist(slot(auc, "y.values"))
 auc_l <- paste(c("AUC  = "),round(auc,4), sep="")
 legend(0.6, 0.6, auc_l ,border="white",cex=.7,box.col = "white")
 abline(a=0, b= 1)
+
+
 ```
 
 
@@ -155,7 +157,8 @@ plot(perf)
 f <- approxfun(data.frame(perf@x.values , perf@y.values) ) 
 auc <- integrate(f, 0, 1)$value
 aucpr <- paste(c("AUC  = "),round(auc,4), sep="")
-legend("center", aucpr ,border="white",cex=1,box.col = "white")
+legend("bottom", aucpr ,border="white",cex=1,box.col = "white")
+
 
 ```
 
@@ -206,7 +209,7 @@ plot(perf)
 f <- approxfun(data.frame(perf@x.values , perf@y.values) ) 
 auc <- integrate(f, 0, 1)$value
 aucpr <- paste(c("AUC  = "),round(auc,4), sep="")
-legend("center", aucpr ,border="white",cex=1,box.col = "white")
+legend("bottom", aucpr ,border="white",cex=1,box.col = "white")
 
 ```
 
@@ -246,14 +249,14 @@ df2$onset = as.factor(df2$onset)
 ## Training the model
 ```{r}
 # split the data
-train_data = df2[which(df2$year<=2005),]
+train_data = df2[which(df2$year<=2011),]
 train_data_l3 = subset(train_data, select=c("ccode", "year", "month",
                                             "vcp_l.3", "mcp_l.3", "vcf_l.3", "mcf_l.3", 'onset'))
 train_data_l6 = subset(train_data, select=c("ccode", "year", "month",
                                             "vcp_l.6", "mcp_l.6", "vcf_l.6", "mcf_l.6", 'onset'))
 
 
-test_data = df2[which(df2$year==2006),]
+test_data = df2[which(df2$year>=2012),]
 test_data_l3 = subset(test_data, select=c("ccode", "year", "month",
                                           "vcp_l.3", "mcp_l.3", "vcf_l.3", "mcf_l.3", 'onset'))
 test_data_l6 = subset(test_data, select=c("ccode", "year", "month",
@@ -309,7 +312,7 @@ plot(perf)
 f <- approxfun(data.frame(perf@x.values , perf@y.values) ) 
 auc <- integrate(f, 0, 1)$value
 aucpr <- paste(c("AUC  = "),round(auc,4), sep="")
-legend("center", aucpr ,border="white",cex=1,box.col = "white")
+legend("bottom", aucpr ,border="white",cex=1,box.col = "white")
 
 ```
 
@@ -359,7 +362,7 @@ plot(perf)
 f <- approxfun(data.frame(perf@x.values , perf@y.values) ) 
 auc <- integrate(f, 0, 1)$value
 aucpr <- paste(c("AUC  = "),round(auc,4), sep="")
-legend("center", aucpr ,border="white",cex=1,box.col = "white")
+legend("bottom", aucpr ,border="white",cex=1,box.col = "white")
 
 ```
 

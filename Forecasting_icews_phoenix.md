@@ -111,17 +111,17 @@ df$onset = as.factor(df$onset)
 Training the model
 ------------------
 
-I split the data on training and test samples. In this example, I train the model on 2001 - 2005 data and test it on 2006 (I use a shorter timeframe to save a training time for this tutorial):
+I split the data on training and test samples. In this example, I train the model on 2001 - 2011 data and test it on 2012-2014:
 
 ``` r
-train_data = df[which(df$year<=2005),]
+train_data = df[which(df$year<=2011),]
 train_data_l3 = subset(train_data, select=c("ccode", "year", "month",
                                             "vcp_l.3", "mcp_l.3", "vcf_l.3", "mcf_l.3", 'onset'))
 train_data_l6 = subset(train_data, select=c("ccode", "year", "month",
                                             "vcp_l.6", "mcp_l.6", "vcf_l.6", "mcf_l.6", 'onset'))
 
 
-test_data = df[which(df$year==2006),]
+test_data = df[which(df$year>=2012),]
 test_data_l3 = subset(test_data, select=c("ccode", "year", "month",
                                             "vcp_l.3", "mcp_l.3", "vcf_l.3", "mcf_l.3", 'onset'))
 test_data_l6 = subset(test_data, select=c("ccode", "year", "month",
@@ -144,19 +144,19 @@ print(rf_model)
 
     ## Random Forest 
     ## 
-    ## 5273 samples
-    ##    7 predictor
-    ##    2 classes: '0', '1' 
+    ## 11409 samples
+    ##     7 predictor
+    ##     2 classes: '0', '1' 
     ## 
     ## No pre-processing
     ## Resampling: Cross-Validated (5 fold) 
-    ## Summary of sample sizes: 4219, 4219, 4217, 4218, 4219 
+    ## Summary of sample sizes: 9128, 9126, 9127, 9127, 9128 
     ## Resampling results across tuning parameters:
     ## 
     ##   mtry  Accuracy   Kappa    
-    ##   2     0.9624513  0.3002987
-    ##   4     0.9736396  0.6060027
-    ##   7     0.9806565  0.7469173
+    ##   2     0.9726533  0.1508018
+    ##   4     0.9784388  0.4916705
+    ##   7     0.9831717  0.6674092
     ## 
     ## Accuracy was used to select the optimal model using  the largest value.
     ## The final value used for the model was mtry = 7.
@@ -174,26 +174,26 @@ print(cfMatrix)
     ## Confusion Matrix and Statistics
     ## 
     ##           Reference
-    ## Prediction   0   1
-    ##          0 936  23
-    ##          1  43   0
+    ## Prediction    0    1
+    ##          0 1834  140
+    ##          1   56    1
     ##                                          
-    ##                Accuracy : 0.9341         
-    ##                  95% CI : (0.917, 0.9487)
-    ##     No Information Rate : 0.977          
-    ##     P-Value [Acc > NIR] : 1.00000        
+    ##                Accuracy : 0.9035         
+    ##                  95% CI : (0.8898, 0.916)
+    ##     No Information Rate : 0.9306         
+    ##     P-Value [Acc > NIR] : 1              
     ##                                          
-    ##                   Kappa : -0.0308        
-    ##  Mcnemar's Test P-Value : 0.01935        
+    ##                   Kappa : -0.0311        
+    ##  Mcnemar's Test P-Value : 3.056e-09      
     ##                                          
-    ##             Sensitivity : 0.9561         
-    ##             Specificity : 0.0000         
-    ##          Pos Pred Value : 0.9760         
-    ##          Neg Pred Value : 0.0000         
-    ##              Prevalence : 0.9770         
-    ##          Detection Rate : 0.9341         
-    ##    Detection Prevalence : 0.9571         
-    ##       Balanced Accuracy : 0.4780         
+    ##             Sensitivity : 0.970370       
+    ##             Specificity : 0.007092       
+    ##          Pos Pred Value : 0.929078       
+    ##          Neg Pred Value : 0.017544       
+    ##              Prevalence : 0.930576       
+    ##          Detection Rate : 0.903003       
+    ##    Detection Prevalence : 0.971935       
+    ##       Balanced Accuracy : 0.488731       
     ##                                          
     ##        'Positive' Class : 0              
     ## 
@@ -228,7 +228,7 @@ plot(perf)
 f <- approxfun(data.frame(perf@x.values , perf@y.values) ) 
 auc <- integrate(f, 0, 1)$value
 aucpr <- paste(c("AUC  = "),round(auc,4), sep="")
-legend("center", aucpr ,border="white",cex=1,box.col = "white")
+legend("bottom", aucpr ,border="white",cex=1,box.col = "white")
 ```
 
 ![](Forecasting_icews_phoenix_files/figure-markdown_github/unnamed-chunk-12-1.png)
@@ -249,19 +249,19 @@ print(rf_model)
 
     ## Random Forest 
     ## 
-    ## 5273 samples
-    ##    7 predictor
-    ##    2 classes: '0', '1' 
+    ## 11409 samples
+    ##     7 predictor
+    ##     2 classes: '0', '1' 
     ## 
     ## No pre-processing
     ## Resampling: Cross-Validated (5 fold) 
-    ## Summary of sample sizes: 4219, 4219, 4219, 4218, 4217 
+    ## Summary of sample sizes: 9126, 9127, 9128, 9127, 9128 
     ## Resampling results across tuning parameters:
     ## 
     ##   mtry  Accuracy   Kappa    
-    ##   2     0.9630204  0.2948843
-    ##   4     0.9749671  0.6202227
-    ##   7     0.9819848  0.7547998
+    ##   2     0.9730038  0.1828678
+    ##   4     0.9800160  0.5386236
+    ##   7     0.9850994  0.7046314
     ## 
     ## Accuracy was used to select the optimal model using  the largest value.
     ## The final value used for the model was mtry = 7.
@@ -275,28 +275,28 @@ print(cfMatrix)
     ## Confusion Matrix and Statistics
     ## 
     ##           Reference
-    ## Prediction   0   1
-    ##          0 935  22
-    ##          1  44   1
-    ##                                          
-    ##                Accuracy : 0.9341         
-    ##                  95% CI : (0.917, 0.9487)
-    ##     No Information Rate : 0.977          
-    ##     P-Value [Acc > NIR] : 1.00000        
-    ##                                          
-    ##                   Kappa : -0.001         
-    ##  Mcnemar's Test P-Value : 0.00974        
-    ##                                          
-    ##             Sensitivity : 0.95506        
-    ##             Specificity : 0.04348        
-    ##          Pos Pred Value : 0.97701        
-    ##          Neg Pred Value : 0.02222        
-    ##              Prevalence : 0.97705        
-    ##          Detection Rate : 0.93313        
-    ##    Detection Prevalence : 0.95509        
-    ##       Balanced Accuracy : 0.49927        
-    ##                                          
-    ##        'Positive' Class : 0              
+    ## Prediction    0    1
+    ##          0 1833  141
+    ##          1   57    0
+    ##                                           
+    ##                Accuracy : 0.9025          
+    ##                  95% CI : (0.8888, 0.9151)
+    ##     No Information Rate : 0.9306          
+    ##     P-Value [Acc > NIR] : 1               
+    ##                                           
+    ##                   Kappa : -0.0416         
+    ##  Mcnemar's Test P-Value : 3.667e-09       
+    ##                                           
+    ##             Sensitivity : 0.9698          
+    ##             Specificity : 0.0000          
+    ##          Pos Pred Value : 0.9286          
+    ##          Neg Pred Value : 0.0000          
+    ##              Prevalence : 0.9306          
+    ##          Detection Rate : 0.9025          
+    ##    Detection Prevalence : 0.9719          
+    ##       Balanced Accuracy : 0.4849          
+    ##                                           
+    ##        'Positive' Class : 0               
     ## 
 
 ``` r
@@ -325,7 +325,7 @@ plot(perf)
 f <- approxfun(data.frame(perf@x.values , perf@y.values) ) 
 auc <- integrate(f, 0, 1)$value
 aucpr <- paste(c("AUC  = "),round(auc,4), sep="")
-legend("center", aucpr ,border="white",cex=1,box.col = "white")
+legend("bottom", aucpr ,border="white",cex=1,box.col = "white")
 ```
 
 ![](Forecasting_icews_phoenix_files/figure-markdown_github/unnamed-chunk-16-1.png)
@@ -372,14 +372,14 @@ Training the model
 
 ``` r
 # split the data
-train_data = df2[which(df2$year<=2005),]
+train_data = df2[which(df2$year<=2011),]
 train_data_l3 = subset(train_data, select=c("ccode", "year", "month",
                                             "vcp_l.3", "mcp_l.3", "vcf_l.3", "mcf_l.3", 'onset'))
 train_data_l6 = subset(train_data, select=c("ccode", "year", "month",
                                             "vcp_l.6", "mcp_l.6", "vcf_l.6", "mcf_l.6", 'onset'))
 
 
-test_data = df2[which(df2$year==2006),]
+test_data = df2[which(df2$year>=2012),]
 test_data_l3 = subset(test_data, select=c("ccode", "year", "month",
                                           "vcp_l.3", "mcp_l.3", "vcf_l.3", "mcf_l.3", 'onset'))
 test_data_l6 = subset(test_data, select=c("ccode", "year", "month",
@@ -407,25 +407,25 @@ print(cfMatrix)
     ## 
     ##           Reference
     ## Prediction    0    1
-    ##          0 1703   32
-    ##          1   57    0
+    ##          0 4021  185
+    ##          1   22    4
     ##                                           
-    ##                Accuracy : 0.9503          
-    ##                  95% CI : (0.9392, 0.9599)
-    ##     No Information Rate : 0.9821          
-    ##     P-Value [Acc > NIR] : 1.00000         
+    ##                Accuracy : 0.9511          
+    ##                  95% CI : (0.9442, 0.9574)
+    ##     No Information Rate : 0.9553          
+    ##     P-Value [Acc > NIR] : 0.9142          
     ##                                           
-    ##                   Kappa : -0.0234         
-    ##  Mcnemar's Test P-Value : 0.01096         
+    ##                   Kappa : 0.0267          
+    ##  Mcnemar's Test P-Value : <2e-16          
     ##                                           
-    ##             Sensitivity : 0.9676          
-    ##             Specificity : 0.0000          
-    ##          Pos Pred Value : 0.9816          
-    ##          Neg Pred Value : 0.0000          
-    ##              Prevalence : 0.9821          
-    ##          Detection Rate : 0.9503          
-    ##    Detection Prevalence : 0.9682          
-    ##       Balanced Accuracy : 0.4838          
+    ##             Sensitivity : 0.99456         
+    ##             Specificity : 0.02116         
+    ##          Pos Pred Value : 0.95602         
+    ##          Neg Pred Value : 0.15385         
+    ##              Prevalence : 0.95534         
+    ##          Detection Rate : 0.95014         
+    ##    Detection Prevalence : 0.99386         
+    ##       Balanced Accuracy : 0.50786         
     ##                                           
     ##        'Positive' Class : 0               
     ## 
@@ -457,7 +457,7 @@ plot(perf)
 f <- approxfun(data.frame(perf@x.values , perf@y.values) ) 
 auc <- integrate(f, 0, 1)$value
 aucpr <- paste(c("AUC  = "),round(auc,4), sep="")
-legend("center", aucpr ,border="white",cex=1,box.col = "white")
+legend("bottom", aucpr ,border="white",cex=1,box.col = "white")
 ```
 
 ![](Forecasting_icews_phoenix_files/figure-markdown_github/unnamed-chunk-23-1.png)
@@ -483,25 +483,25 @@ print(cfMatrix)
     ## 
     ##           Reference
     ## Prediction    0    1
-    ##          0 1698   32
-    ##          1   62    0
+    ##          0 3995  187
+    ##          1   48    2
     ##                                           
-    ##                Accuracy : 0.9475          
-    ##                  95% CI : (0.9362, 0.9574)
-    ##     No Information Rate : 0.9821          
-    ##     P-Value [Acc > NIR] : 1.00000         
+    ##                Accuracy : 0.9445          
+    ##                  95% CI : (0.9371, 0.9512)
+    ##     No Information Rate : 0.9553          
+    ##     P-Value [Acc > NIR] : 0.9996          
     ##                                           
-    ##                   Kappa : -0.0241         
-    ##  Mcnemar's Test P-Value : 0.00278         
+    ##                   Kappa : -0.002          
+    ##  Mcnemar's Test P-Value : <2e-16          
     ##                                           
-    ##             Sensitivity : 0.9648          
-    ##             Specificity : 0.0000          
-    ##          Pos Pred Value : 0.9815          
-    ##          Neg Pred Value : 0.0000          
-    ##              Prevalence : 0.9821          
-    ##          Detection Rate : 0.9475          
-    ##    Detection Prevalence : 0.9654          
-    ##       Balanced Accuracy : 0.4824          
+    ##             Sensitivity : 0.98813         
+    ##             Specificity : 0.01058         
+    ##          Pos Pred Value : 0.95528         
+    ##          Neg Pred Value : 0.04000         
+    ##              Prevalence : 0.95534         
+    ##          Detection Rate : 0.94400         
+    ##    Detection Prevalence : 0.98819         
+    ##       Balanced Accuracy : 0.49935         
     ##                                           
     ##        'Positive' Class : 0               
     ## 
@@ -532,7 +532,7 @@ plot(perf)
 f <- approxfun(data.frame(perf@x.values , perf@y.values) ) 
 auc <- integrate(f, 0, 1)$value
 aucpr <- paste(c("AUC  = "),round(auc,4), sep="")
-legend("center", aucpr ,border="white",cex=1,box.col = "white")
+legend("bottom", aucpr ,border="white",cex=1,box.col = "white")
 ```
 
 ![](Forecasting_icews_phoenix_files/figure-markdown_github/unnamed-chunk-27-1.png)
