@@ -3,7 +3,8 @@ Forecasting Event Data
 Zhanna Terechshenko
 10/27/2017
 
-### Introduction
+Introduction
+------------
 
 In this tutorial, I compare forecasting utility of PHOENIX and ICEWS event datasets using the output from the random forest model.
 
@@ -49,7 +50,9 @@ head(eoi)
     ## 5 Bentley & Leonard                                            
     ## 6 Bentley & Leonard
 
-Here, I'll focus on on International Crisis. For the purpose of forecasting I create an onset variable:
+Here, I'll focus on on International Crisis.
+
+Since the goal is to predict a conflict, we have to focus on its onset rather than its duration. Therefore, I create an onset variable, which is equal to 1 for the month the conflict started and equal 0 for all other months:
 
 ``` r
 eoi_int = eoi %>%
@@ -66,6 +69,8 @@ eoi_final$ic = NULL
 ```
 
 I've already preprocessed both PHOENIX and ICEWS (pho\_processing.R and Icews\_processing.R scripts in the repository). I aggregated both datasets to the country - month level and selected conflicts with government and military actors for international conflict. In this aggregated form, both datasets provide information on counts of events for quad classes: verbal cooperation, material cooperation, verbal conflict, material conflict.
+
+### PHOENIX Dataset
 
 ``` r
 phoenix_int = read.csv("pho_international.csv")
@@ -103,7 +108,10 @@ df = merge(pho_int_lag, eoi_final, by=c("ccode", "year", "month"))
 df$onset = as.factor(df$onset)
 ```
 
-I split the data on training and test samples. In this example, I train the model on 2001 - 2005 data and test it on 2006:
+Training the model
+------------------
+
+I split the data on training and test samples. In this example, I train the model on 2001 - 2005 data and test it on 2006 (I use a shorter timeframe to save a training time for this tutorial):
 
 ``` r
 train_data = df[which(df$year<=2005),]
@@ -120,7 +128,9 @@ test_data_l6 = subset(test_data, select=c("ccode", "year", "month",
                                             "vcp_l.6", "mcp_l.6", "vcf_l.6", "mcf_l.6", 'onset'))
 ```
 
-I train the model using random forest and 5-fold cross validation.
+I train the model using random forest and 5-fold cross validation. Random forest is an ensemble learning method that combines numerous decision trees and averages them in order to create predictions for a given set of data. In random forest, each tree is passed both a bootstrapped sample of the data and a random selection of the input variables.
+
+Cross-validation helps us to identify hyperparameter (in this case, the hyperparameter is mtry or number of variables randomly sampled as candidates at each split).
 
 ``` r
 fitControl=trainControl(method="cv",number=5)
@@ -152,6 +162,8 @@ print(rf_model)
     ## The final value used for the model was mtry = 7.
 
 The models are usually assessed using classification tables that show the counts for each prediction type, such as true positive, false positive, etc., and receiver operator characteristic (ROC) plots, along with the area under the curve (AUC). It should be noted, however, that the both ICEWS and PHOENIX datasets are highly imbalanced. In this case, precision and recall are considered better metrics for evaluation of the models [Saito and Rehmsmeier 2015](http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0118432)
+
+### 3-months lagged PHOENIX data
 
 ``` r
 testclass <- predict(rf_model, newdata = test_data_l3)
@@ -186,7 +198,7 @@ print(cfMatrix)
     ##        'Positive' Class : 0              
     ## 
 
-I use predictions to construct ROC plots
+I use predictions to construct ROC plots. ROC curve is created by plotting the true positive rate (TPR) against the false positive rate (FPR) at various threshold settings (cutoff points). These cutoff points divide observations based on predicted probabilities. The closer the curve follows the left-hand border and then the top border of the ROC space, the more accurate the model. The area under the curve (AUC) of 1 represents the perfect test.
 
 ``` r
 test.probs <- predict(rf_model,test_data_l3,type="prob")
@@ -207,7 +219,7 @@ abline(a=0, b= 1)
 
 ![](Forecasting_icews_phoenix_files/figure-markdown_github/unnamed-chunk-11-1.png)
 
-Now let's look at recall and precision:
+Now let's look at precision-recall curve. Precision-recall curve shows the tradeoff between precision and recall for different threshold. Precision is a measure of result relevancy, while recall is a measure of how many truly relevant results are returned. A high area under the curve represents both high recall and high precision.
 
 ``` r
 perf <- performance(pred, "prec", "rec")
@@ -220,6 +232,8 @@ legend("center", aucpr ,border="white",cex=1,box.col = "white")
 ```
 
 ![](Forecasting_icews_phoenix_files/figure-markdown_github/unnamed-chunk-12-1.png)
+
+### 6-months lagged PHOENIX data
 
 Let's look at six-months lagged data:
 
@@ -316,6 +330,9 @@ legend("center", aucpr ,border="white",cex=1,box.col = "white")
 
 ![](Forecasting_icews_phoenix_files/figure-markdown_github/unnamed-chunk-16-1.png)
 
+ICEWS Dataset
+-------------
+
 I am doing the same for ICEWS data:
 
 ``` r
@@ -348,7 +365,12 @@ icw_int_lag = na.omit(icw_int_lag)
 # merge 2 datasets
 df2 = merge(icw_int_lag, eoi_final, by=c("ccode", "year", "month"))
 df2$onset = as.factor(df2$onset)
+```
 
+Training the model
+------------------
+
+``` r
 # split the data
 train_data = df2[which(df2$year<=2005),]
 train_data_l3 = subset(train_data, select=c("ccode", "year", "month",
@@ -363,6 +385,8 @@ test_data_l3 = subset(test_data, select=c("ccode", "year", "month",
 test_data_l6 = subset(test_data, select=c("ccode", "year", "month",
                                           "vcp_l.6", "mcp_l.6", "vcf_l.6", "mcf_l.6", 'onset'))
 ```
+
+### 3-months ICEWS data
 
 ``` r
 # train the model
@@ -424,7 +448,7 @@ legend(0.6, 0.6, auc_l ,border="white",cex=.7,box.col = "white")
 abline(a=0, b= 1)
 ```
 
-![](Forecasting_icews_phoenix_files/figure-markdown_github/unnamed-chunk-21-1.png)
+![](Forecasting_icews_phoenix_files/figure-markdown_github/unnamed-chunk-22-1.png)
 
 ``` r
 perf <- performance(pred, "prec", "rec")
@@ -436,7 +460,9 @@ aucpr <- paste(c("AUC  = "),round(auc,4), sep="")
 legend("center", aucpr ,border="white",cex=1,box.col = "white")
 ```
 
-![](Forecasting_icews_phoenix_files/figure-markdown_github/unnamed-chunk-22-1.png)
+![](Forecasting_icews_phoenix_files/figure-markdown_github/unnamed-chunk-23-1.png)
+
+### 6-months lagged ICEWS data
 
 ``` r
 # train the model
@@ -497,7 +523,7 @@ legend(0.6, 0.6, auc_l ,border="white",cex=.7,box.col = "white")
 abline(a=0, b= 1)
 ```
 
-![](Forecasting_icews_phoenix_files/figure-markdown_github/unnamed-chunk-25-1.png)
+![](Forecasting_icews_phoenix_files/figure-markdown_github/unnamed-chunk-26-1.png)
 
 ``` r
 perf <- performance(pred, "prec", "rec")
@@ -509,4 +535,9 @@ aucpr <- paste(c("AUC  = "),round(auc,4), sep="")
 legend("center", aucpr ,border="white",cex=1,box.col = "white")
 ```
 
-![](Forecasting_icews_phoenix_files/figure-markdown_github/unnamed-chunk-26-1.png)
+![](Forecasting_icews_phoenix_files/figure-markdown_github/unnamed-chunk-27-1.png)
+
+Conclusion
+----------
+
+In general PHOENIX seems to do a slightly better job than ICEWS in predicting international crises. Nevertheless, this finding is not sufficient to conclude that PHOENIX has a greater forecasting utility than ICEWS. I am going to address this issue by conducting an analysis of the datasets using different Events of Interests and different models.
